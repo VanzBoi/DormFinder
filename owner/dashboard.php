@@ -1,0 +1,6 @@
+<?php
+require dirname(__DIR__) . '/includes/bootstrap.php'; $user=require_role('owner'); $title='Your owner overview'; require ROOT . '/includes/dashboard-start.php';
+$stats=one("SELECT COUNT(*) total,COALESCE(SUM(status='approved' AND is_active=1),0) active,COALESCE(SUM(status='pending'),0) pending,COALESCE(SUM(available_slots),0) slots FROM dormitories WHERE owner_id=? AND deleted_at IS NULL",[$user['id']]);
+?>
+<p class="lead-copy">A welcoming place starts with an up-to-date listing.</p><div class="stats-grid"><?php foreach (['total'=>'Your listings','active'=>'Active listings','pending'=>'Pending review','slots'=>'Available slots (all listings)'] as $key=>$label): ?><div class="stat-card"><span><?= $label ?></span><strong><?= $stats[$key] ?></strong></div><?php endforeach; ?></div><div class="panel"><h2>Help a student find their fit.</h2><p>New and edited listings go to the administrator for review. They appear publicly after approval.</p><a class="btn btn-primary" href="<?= url('owner/add-listing.php') ?>">Add a listing <i class="bi bi-plus-lg" aria-hidden="true"></i></a> <a class="btn btn-outline-primary" href="<?= url('owner/listings.php') ?>">Manage listings</a></div>
+<?php require ROOT . '/includes/dashboard-end.php'; ?>

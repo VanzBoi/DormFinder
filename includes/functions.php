@@ -3,7 +3,11 @@ declare(strict_types=1);
 function e(mixed $value): string { return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function url(string $path = ''): string { return BASE_URL . '/' . ltrim($path, '/'); }
 function redirect(string $path): never { header('Location: ' . url($path)); exit; }
-function query(string $sql, array $params = []): PDOStatement { $s = db()->prepare($sql); $s->execute($params); return $s; }
+function query(string $sql, array $params = []): PDOStatement {
+    // Parameter-free statements need no separate prepare round trip to hosted MySQL.
+    if (!$params) return db()->query($sql);
+    $s = db()->prepare($sql); $s->execute($params); return $s;
+}
 function rows(string $sql, array $params = []): array { return query($sql, $params)->fetchAll(); }
 function one(string $sql, array $params = []): ?array { return query($sql, $params)->fetch() ?: null; }
 function scalar(string $sql, array $params = []): mixed { return query($sql, $params)->fetchColumn(); }
@@ -70,7 +74,22 @@ function textarea_field(string $label, string $name, mixed $value, bool $require
     echo '<div class="form-field"><label for="' . e($name) . '">' . e($label) . '</label><textarea class="form-control" rows="4" maxlength="5000" id="' . e($name) . '" name="' . e($name) . '" ' . ($required ? 'required' : '') . '>' . e($value) . '</textarea></div>';
 }
 function errors_box(array $errors): void { if ($errors) { echo '<div class="alert alert-danger" role="alert"><ul class="mb-0">'; foreach ($errors as $error) echo '<li>' . e($error) . '</li>'; echo '</ul></div>'; } }
-function listing_cards(array $listings): void { foreach ($listings as $d) require __DIR__ . '/listing-card.php'; }
+function listing_cards(array $listings): void {
+    if (!$listings) return;
+    $ids = array_map(fn($d) => (int)$d['id'], $listings);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    // Fetch cover IDs and favorites once for the whole page, not once per card.
+    $covers = array_column(rows("SELECT dormitory_id,MIN(id) image_id FROM dormitory_images WHERE is_public=1 AND dormitory_id IN ($placeholders) GROUP BY dormitory_id", $ids), 'image_id', 'dormitory_id');
+    $cardViewer = current_user();
+    $favorites = ($cardViewer['role'] ?? '') === 'student'
+        ? array_column(rows("SELECT dormitory_id FROM favorites WHERE user_id=? AND dormitory_id IN ($placeholders)", [$cardViewer['id'], ...$ids]), 'dormitory_id', 'dormitory_id')
+        : [];
+    foreach ($listings as $d) {
+        $saved = isset($favorites[$d['id']]);
+        $cardCover = isset($covers[$d['id']]) ? image_url((int)$covers[$d['id']]) : url('assets/images/placeholder.svg');
+        require __DIR__ . '/listing-card.php';
+    }
+}
 function password_field(string $label, string $name, string $extra = ''): void {
     // The visibility button ships hidden and is only revealed by script.js, so there is never a dead button.
     echo '<div class="form-field"><label for="' . e($name) . '">' . e($label) . '</label><div class="pw-wrap"><input class="form-control" id="' . e($name) . '" name="' . e($name) . '" type="password" ' . $extra . '><button class="pw-toggle" type="button" data-toggle-password="' . e($name) . '" aria-label="Show password" aria-pressed="false" hidden><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>';

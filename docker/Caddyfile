@@ -15,6 +15,9 @@
 
 	handle {
 		encode zstd gzip
+		# Only public static assets may be cached; PHP responses retain no-store.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=3600"
 		php_server
 	}
 }

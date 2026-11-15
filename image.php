@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
-$img = one('SELECT * FROM dormitory_images WHERE id=?', [(int)get('id')]);
-$d = $img ? listing((int)$img['dormitory_id']) : null;
+$img = one('SELECT i.*,d.status,d.is_active,d.deleted_at,d.owner_id FROM dormitory_images i JOIN dormitories d ON d.id=i.dormitory_id WHERE i.id=? AND d.deleted_at IS NULL', [(int)get('id')]);
+$d = $img ? array_replace($img, ['id' => $img['dormitory_id']]) : null;
 if (!$d || (!is_public($d) && !can_manage($d)) || (!$img['is_public'] && !can_manage($d) && !has_unlock((int)$d['id']))) { http_response_code(404); exit; }
 if (($img['image_data'] ?? null) !== null) { // column is absent on databases created before hosted mode
     $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($img['image_data']);

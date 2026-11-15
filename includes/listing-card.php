@@ -1,8 +1,7 @@
 <?php
-$cardViewer = current_user(); $slots = (int)$d['available_slots'];
-$saved = ($cardViewer['role'] ?? '') === 'student' && scalar('SELECT COUNT(*) FROM favorites WHERE user_id=? AND dormitory_id=?', [$cardViewer['id'], $d['id']]);
+$slots = (int)$d['available_slots'];
 ?>
-<div class="card-slot" data-reveal><article class="dorm-card"><div class="card-media"><a class="card-image" href="<?= url('dorm-details.php?id=' . $d['id']) ?>" tabindex="-1" aria-hidden="true"><img src="<?= e(cover_url((int)$d['id'])) ?>" alt="" width="640" height="480" loading="lazy" decoding="async"></a><span class="photo-label"><?= $d['is_demo'] ? 'DEMO LISTING' : e($d['room_type']) ?></span>
+<div class="card-slot" data-reveal><article class="dorm-card"><div class="card-media"><a class="card-image" href="<?= url('dorm-details.php?id=' . $d['id']) ?>" tabindex="-1" aria-hidden="true"><img src="<?= e($cardCover) ?>" alt="" width="640" height="480" loading="lazy" decoding="async"></a><span class="photo-label"><?= $d['is_demo'] ? 'DEMO LISTING' : e($d['room_type']) ?></span>
 <?php if (($cardViewer['role'] ?? '') === 'student'): ?><form class="fav-form" method="post" action="<?= url('student/favorites.php') ?>"><?= csrf() ?><input type="hidden" name="id" value="<?= $d['id'] ?>"><button class="fav-btn<?= $saved ? ' is-saved' : '' ?>" aria-label="<?= $saved ? 'Remove ' . e($d['name']) . ' from saved places' : 'Save ' . e($d['name']) ?>"><i class="bi bi-heart<?= $saved ? '-fill' : '' ?>" aria-hidden="true"></i></button></form>
 <?php elseif (!$cardViewer): ?><span class="fav-form"><a class="fav-btn" href="<?= url('auth/login.php') ?>" aria-label="Log in to save <?= e($d['name']) ?>"><i class="bi bi-heart" aria-hidden="true"></i></a></span><?php endif; ?></div>
 <div class="card-body"><div class="card-meta"><span><i class="bi bi-geo-alt" aria-hidden="true"></i> <?= e($d['location']) ?>, Cebu City</span><span class="avail-badge<?= $slots === 0 ? ' full' : '' ?>"><?= $slots === 0 ? 'Fully occupied' : $slots . ($slots === 1 ? ' slot left' : ' slots left') ?></span></div>

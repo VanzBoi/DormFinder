@@ -246,6 +246,258 @@
     },
     {
       "result": "Pass",
+      "check": "768px /: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px home: all images load"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: mobile navigation opens"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: mobile navigation closes"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /browse.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /browse.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /dorm-details.php?id=2: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /dorm-details.php?id=2: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /auth/login.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /auth/login.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /auth/register.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /auth/register.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /compare.php?ids=1,2,3: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /compare.php?ids=1,2,3: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: combined search and filters"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: fully occupied status"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: occupied listing excluded by available-only filter"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: price_asc order"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: price_desc order"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: comparison selection"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: comparison table displays two places"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: clear comparison"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: student browser login"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/dashboard.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/dashboard.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/favorites.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/favorites.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/unlocked.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/unlocked.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/profile.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /student/profile.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px unlock form: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: owner browser login"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/dashboard.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/dashboard.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/listings.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/listings.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/add-listing.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/add-listing.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/edit-listing.php?id=1: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/edit-listing.php?id=1: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/profile.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /owner/profile.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px: admin browser login"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/dashboard.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/dashboard.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/dormitories.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/dormitories.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/users.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/users.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/universities.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/universities.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/room-types.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/room-types.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/transactions.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/transactions.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/activity.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/activity.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/settings.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/settings.php: no page overflow"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/add-listing.php: loads"
+    },
+    {
+      "result": "Pass",
+      "check": "768px /admin/add-listing.php: no page overflow"
+    },
+    {
+      "result": "Pass",
       "check": "375px /: loads"
     },
     {

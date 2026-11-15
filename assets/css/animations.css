@@ -1,0 +1,59 @@
+/* DormFinder motion system.
+   Rules: transform + opacity only, 180-350ms for UI, 450-700ms for section reveals.
+   Content is visible by default. Motion is enabled only after motion.js initializes. */
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes zoom-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes toast-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to { opacity: 0; transform: translateX(40px); } }
+@keyframes heart-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes hero-zoom { from { transform: scale(1); } to { transform: scale(1.07); } }
+@keyframes float-a { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(18px, -26px, 0); } }
+@keyframes float-b { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(-24px, 20px, 0); } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Scroll reveal (driven by IntersectionObserver in motion.js).
+   One-shot animation with fill-mode backwards, so once it ends the element returns to its normal styles and its own hover transitions work. */
+.motion-ready [data-reveal].is-visible { animation: fade-up .6s var(--ease) backwards; animation-delay: var(--reveal-delay, 0ms); }
+.motion-ready [data-reveal="fade"].is-visible { animation-name: fade-in; }
+.motion-ready [data-reveal="scale"].is-visible { animation-name: zoom-in; }
+.motion-ready [data-reveal]:focus-within { animation: none; }
+
+/* Hero entrance: staggered via animation-delay, runs once on load */
+.motion-ready .hero-in { animation: fade-up .65s var(--ease) backwards; }
+.motion-ready .hero-in.d1 { animation-delay: .06s; } .motion-ready .hero-in.d2 { animation-delay: .14s; } .motion-ready .hero-in.d3 { animation-delay: .22s; } .motion-ready .hero-in.d4 { animation-delay: .28s; }
+.motion-ready .search-in { animation: fade-up .65s var(--ease) .18s backwards; }
+.hero-bg { animation: hero-zoom 26s ease-in-out infinite alternate; }
+.hero-shape.one { animation: float-a 14s ease-in-out infinite; } .hero-shape.two { animation: float-b 17s ease-in-out infinite; }
+
+/* Form and page entrances */
+.motion-ready .auth-form > * { animation: fade-up .5s var(--ease) backwards; }
+.motion-ready .auth-form > *:nth-child(2) { animation-delay: .05s; }
+.motion-ready .auth-form > *:nth-child(n+3) { animation-delay: .1s; }
+.motion-ready .auth-form form .form-field { animation: fade-up .5s var(--ease) backwards; }
+.motion-ready .auth-form form .form-field:nth-child(3) { animation-delay: .08s; }
+.motion-ready .auth-form form .form-field:nth-child(n+4) { animation-delay: .16s; }
+.motion-ready .auth-form > form { animation: none; }
+.motion-ready .auth-form form .form-field:focus-within { animation: none; }
+
+/* Charts: bars grow from zero when their card scrolls into view */
+.motion-ready .chart-card.is-visible .bar-fill { animation: grow-x .6s var(--ease) backwards; }
+.motion-ready .chart-card .bar-row:nth-child(3) .bar-fill { animation-delay: .06s; }
+.motion-ready .chart-card .bar-row:nth-child(n+4) .bar-fill { animation-delay: .12s; }
+
+/* Success / failure result icon is pure SVG draw animation (see style.css) */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+  [data-reveal], .hero-in, .search-in, .auth-form > *, .auth-form form .form-field { opacity: 1 !important; transform: none !important; }
+  .chart-card .bar-fill { transform: none !important; }
+  .result-icon circle, .result-icon path { stroke-dashoffset: 0 !important; }
+}
+
+@media print {
+  [data-reveal], .hero-in, .search-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+}

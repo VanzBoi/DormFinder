@@ -1,0 +1,13 @@
+.git
+.gitignore
+README.md
+tests
+scripts
+Dockerfile
+.dockerignore
+.vercel
+.env
+.env.*
+config/local.php
+uploads/dormitories/*
+!uploads/dormitories/.gitkeep

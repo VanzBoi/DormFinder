@@ -1,4 +1,4 @@
 Options -Indexes
-<FilesMatch "^(README\.md|.*\.log|\.gitignore)$">
+<FilesMatch "^(README\.md|Dockerfile|\.dockerignore|\.vercelignore|.*\.log|\.gitignore)$">
 Require all denied
 </FilesMatch>

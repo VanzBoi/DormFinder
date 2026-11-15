@@ -66,6 +66,8 @@ CREATE TABLE dormitory_images (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  dormitory_id BIGINT UNSIGNED NOT NULL,
  file_path VARCHAR(255) NOT NULL,
+ image_data MEDIUMBLOB NULL,
+ image_mime VARCHAR(50) NULL,
  is_public TINYINT(1) NOT NULL DEFAULT 0,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (dormitory_id) REFERENCES dormitories(id) ON DELETE CASCADE
@@ -116,6 +118,12 @@ CREATE TABLE recent_views (
  PRIMARY KEY (user_id,dormitory_id),
  FOREIGN KEY (user_id) REFERENCES users(id),
  FOREIGN KEY (dormitory_id) REFERENCES dormitories(id)
+) ENGINE=InnoDB;
+CREATE TABLE sessions (
+ id VARCHAR(128) NOT NULL PRIMARY KEY,
+ data MEDIUMBLOB NOT NULL,
+ updated_at INT UNSIGNED NOT NULL,
+ INDEX session_age (updated_at)
 ) ENGINE=InnoDB;
 CREATE TABLE activity_logs (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

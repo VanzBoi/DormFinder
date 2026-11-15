@@ -71,3 +71,21 @@ function textarea_field(string $label, string $name, mixed $value, bool $require
 }
 function errors_box(array $errors): void { if ($errors) { echo '<div class="alert alert-danger" role="alert"><ul class="mb-0">'; foreach ($errors as $error) echo '<li>' . e($error) . '</li>'; echo '</ul></div>'; } }
 function listing_cards(array $listings): void { foreach ($listings as $d) require __DIR__ . '/listing-card.php'; }
+function password_field(string $label, string $name, string $extra = ''): void {
+    // The visibility button ships hidden and is only revealed by script.js, so there is never a dead button.
+    echo '<div class="form-field"><label for="' . e($name) . '">' . e($label) . '</label><div class="pw-wrap"><input class="form-control" id="' . e($name) . '" name="' . e($name) . '" type="password" ' . $extra . '><button class="pw-toggle" type="button" data-toggle-password="' . e($name) . '" aria-label="Show password" aria-pressed="false" hidden><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>';
+}
+function stat_card(string $label, mixed $value, string $icon = 'bi-bar-chart'): void {
+    $numeric = is_int($value) || (is_string($value) && ctype_digit($value));
+    echo '<div class="stat-card" data-reveal><span class="stat-icon"><i class="bi ' . e($icon) . '" aria-hidden="true"></i></span><span class="stat-label">' . e($label) . '</span><strong' . ($numeric ? ' data-count-to="' . e((string)(int)$value) . '"' : '') . '>' . e($numeric ? number_format((int)$value) : $value) . '</strong></div>';
+}
+/** Horizontal bar chart drawn as SVG from real values: $rows = ['Label' => [value, 'blue|teal|amber|red']]. No inline styles, so it works under the strict CSP. */
+function bar_chart(string $title, array $rows): void {
+    $max = max(1, ...array_values(array_map(fn($r) => (int)$r[0], $rows)));
+    echo '<div class="panel chart-card" data-reveal="fade"><h3>' . e($title) . '</h3>';
+    foreach ($rows as $label => [$value, $color]) {
+        $value = (int)$value; $width = $value > 0 ? max(12, round($value / $max * 320, 1)) : 0;
+        echo '<div class="bar-row"><span>' . e($label) . '</span><svg class="bar-svg" viewBox="0 0 320 12" preserveAspectRatio="none" role="img" aria-label="' . e("$label: $value") . '"><rect class="bar-track" width="320" height="12" rx="6"/><rect class="bar-fill ' . e($color) . '" width="' . $width . '" height="12" rx="6"/></svg><strong>' . $value . '</strong></div>';
+    }
+    echo '</div>';
+}

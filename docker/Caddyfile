@@ -1,0 +1,20 @@
+{
+	frankenphp
+	auto_https off
+	admin off
+}
+
+:{$PORT:80} {
+	root * /app
+
+	# Same protection the .htaccess files give under Apache.
+	@private path_regexp private (?i)(^|/)(config|includes|database|uploads|tests|scripts|docker|\.git)(/|$)|(^|/)\.|\.(log|md|sql|ini|ps1|py|json)$|^/(Dockerfile|router\.php)$
+	handle @private {
+		respond "Forbidden" 403
+	}
+
+	handle {
+		encode zstd gzip
+		php_server
+	}
+}

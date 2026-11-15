@@ -233,7 +233,8 @@ try {
     $t->section('Public pages');
     $home = $guest->get('/');
     $t->status($home, 200, 'Home page loads');
-    $t->check($home->has('<option value="3000">Up to ₱3,000</option>'), 'Home budget filter has a valid ₱3,000 option');
+    $t->check($home->has('name="min_rent"') && $home->has('name="max_rent"') && $home->has('name="university"') && $home->has('name="location"') && $home->has('action="/browse.php"'), 'Home search panel offers university, location and min/max budget and submits to browse');
+    $t->check($home->has('Your Next Home,') && !preg_match('~<(?:script|style)\b[^>]*>[^<]|\sstyle=~i', $home->body), 'Home page has the new hero and no inline scripts or styles (CSP-safe)');
     $t->check(str_contains($home->header('content-security-policy'), "default-src 'self'"), 'Content-Security-Policy header is sent');
     $t->check($home->header('x-frame-options') === 'SAMEORIGIN', 'X-Frame-Options header is sent');
     $cookie = implode("\n", $home->headers['set-cookie'] ?? []);
@@ -378,8 +379,13 @@ try {
     $t->redirect($added, '/owner/listings.php', 'An owner can add a listing with a photo');
     $created = row("SELECT id,status,owner_id,monthly_rent FROM dormitories WHERE name='Test Harbor House'");
     $t->check(($created['status'] ?? '') === 'pending' && (int)($created['owner_id'] ?? 0) === 2 && ($created['monthly_rent'] ?? '') === '4100.50', 'New listings start pending, owned by the submitter');
-    $upload = row('SELECT id,file_path,is_public FROM dormitory_images WHERE dormitory_id=?', [$created['id'] ?? 0]);
-    $t->check(($upload['is_public'] ?? 0) === 1 && preg_match('~^uploads/dormitories/[a-f0-9]{40}\.jpg$~', $upload['file_path'] ?? '') && is_file("$app/" . ($upload['file_path'] ?? '-')), 'The photo is stored under a random name');
+    $upload = row('SELECT id,file_path,is_public,(image_data IS NOT NULL) in_db,LENGTH(image_data) bytes FROM dormitory_images WHERE dormitory_id=?', [$created['id'] ?? 0]);
+    if (\db_setting('STORAGE_DRIVER', 'file') === 'database') {
+        $t->check((int)($upload['is_public'] ?? 0) === 1 && (int)($upload['in_db'] ?? 0) === 1 && (int)($upload['bytes'] ?? 0) === filesize("$app/assets/images/room-1.jpg") && !array_diff(scandir($uploadDir), $uploadsBefore), 'The photo is stored in the database and nothing is written to disk');
+        $t->check(hash('sha256', $owner->get('/image.php?id=' . ($upload['id'] ?? 0))->body) === hash_file('sha256', "$app/assets/images/room-1.jpg"), 'The stored photo is served back byte for byte');
+    } else {
+        $t->check((int)($upload['is_public'] ?? 0) === 1 && preg_match('~^uploads/dormitories/[a-f0-9]{40}\.jpg$~', $upload['file_path'] ?? '') && is_file("$app/" . ($upload['file_path'] ?? '-')), 'The photo is stored under a random name');
+    }
     $t->status($guest->get('/image.php?id=' . ($upload['id'] ?? 0)), 404, "A pending listing's photo is not public");
     $t->status($owner->get('/image.php?id=' . ($upload['id'] ?? 0)), 200, 'The owner can see their pending photo');
 
@@ -417,6 +423,27 @@ try {
     $admin->submit('/admin/universities.php', ['action' => 'delete', 'id' => (string)$testUni, 'confirm' => '1']);
     $t->check(!val('SELECT COUNT(*) FROM universities WHERE id=?', [$testUni]), 'An unused university can be deleted');
 
+    $t->section('Dashboards render for every role');
+    $ownerHome = $owner->get('/owner/dashboard.php');
+    $t->check($ownerHome->status === 200 && $ownerHome->has('class="bar-row"') && $ownerHome->has('data-count-to='), 'Owner dashboard shows count-up stats and a status chart', "HTTP $ownerHome->status");
+    $adminHome = $admin->get('/admin/dashboard.php');
+    $t->check($adminHome->status === 200 && substr_count($adminHome->body, 'class="panel chart-card"') === 3, 'Admin dashboard shows three charts built from database values', "HTTP $adminHome->status");
+    $t->check($admin->get('/admin/dashboard.php')->has('aria-current="page"') && $adminHome->has('data-sidebar-collapse') && $adminHome->has('profile-dropdown'), 'Dashboard shell has an active nav item, collapsible sidebar and profile menu');
+    $studentHome = (new Browser($base)); $studentHome->login('student@dormfinder.test'); $sh = $studentHome->get('/student/dashboard.php');
+    $t->check($sh->status === 200 && $sh->has('Welcome back, Alex.') && $sh->has('Account information'), 'Student dashboard shows the welcome and account panels', "HTTP $sh->status");
+    foreach (['/student/favorites.php', '/student/unlocked.php', '/student/profile.php'] as $path) $t->status($studentHome->get($path), 200, "Student page $path renders");
+    foreach (['/owner/listings.php', '/owner/profile.php', '/owner/add-listing.php'] as $path) $t->status($owner->get($path), 200, "Owner page $path renders");
+    foreach (['/admin/dormitories.php', '/admin/users.php', '/admin/transactions.php', '/admin/activity.php', '/admin/settings.php', '/admin/room-types.php', '/admin/add-listing.php'] as $path) $t->status($admin->get($path), 200, "Admin page $path renders");
+
+    $t->section('Browse filters and details page');
+    $filtered = $guest->get('/browse.php?university=1&max_rent=4000&sort=price_asc');
+    $t->check(substr_count($filtered->body, 'class="filter-chip"') >= 4 && $filtered->has('Remove filter: Up to ₱4,000') && $filtered->has('Clear all'), 'Active filters appear as removable chips');
+    $t->check($filtered->has('data-filter-open') && $filtered->has('id="filters"'), 'The filter panel doubles as the mobile drawer');
+    $t->check($guest->get('/browse.php?q=zzzz-nothing')->has('No matching places just yet.'), 'An empty result shows the friendly empty state');
+    $lockedPage = $guest->get('/dorm-details.php?id=2');
+    $t->check($lockedPage->has('breadcrumb-nav') && $lockedPage->has('data-lightbox') && $lockedPage->has('locked-preview') && !$lockedPage->has('Sample Lane') && !$lockedPage->has('0900-000-0000'), 'Locked page has breadcrumbs, gallery and a blurred preview, with no protected data in the source');
+    $t->check($guest->get('/unlock.php?id=2')->status === 302, 'Guests are sent to sign in before unlocking');
+
     $t->section('Admin settings, transactions and users');
     $t->check($admin->submit('/admin/settings.php', ['unlock_fee' => '-3'])->has('Enter a positive fee'), 'A negative fee is rejected');
     $admin->submit('/admin/settings.php', ['unlock_fee' => '59']);
@@ -438,6 +465,11 @@ try {
     $t->redirect($admin->get('/admin/dashboard.php'), '/auth/login.php', 'The old session no longer works');
 
     // --- Whole-run checks ------------------------------------------------------------------
+    if (\db_setting('SESSION_DRIVER', 'file') === 'database') {
+        $t->section('Database sessions');
+        $t->check((int)val('SELECT COUNT(*) FROM sessions') > 0 && !glob("$runtime/sessions/sess_*"), 'Sessions are stored in the database, not on disk');
+        $t->check((int)val("SELECT COUNT(*) FROM sessions WHERE data LIKE '%user_id%'") >= 1, 'Signed-in sessions carry the user id');
+    }
     $t->section('Clean output');
     // PHP's own oversized-POST warning is expected for the 413 test; anything else is a defect.
     $diagnostic = '~(?:<b>)?(?:Warning|Notice|Deprecated|Fatal error|Parse error)(?:</b>)?:\s|We couldn.t complete that request~';

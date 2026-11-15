@@ -3,3 +3,7 @@
 !/uploads/dormitories/.gitkeep
 /tests/.runtime/
 *.log
+/.vercel/
+.env
+.env.*
+!.env.example

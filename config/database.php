@@ -16,11 +16,14 @@ function db(): PDO
         $host = db_setting('DB_HOST', '127.0.0.1');
         $port = db_setting('DB_PORT', '3306');
         $name = db_setting('DB_NAME', 'dormfinder_db');
-        $pdo = new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4", db_setting('DB_USER', 'root'), db_setting('DB_PASSWORD', ''), [
+        $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
+        ];
+        // Hosted MySQL services require TLS. Set DB_SSL_CA to a CA bundle path (the container uses /etc/ssl/certs/ca-certificates.crt).
+        if (db_setting('DB_SSL_CA', '') !== '') $options[PDO::MYSQL_ATTR_SSL_CA] = db_setting('DB_SSL_CA', '');
+        $pdo = new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4", db_setting('DB_USER', 'root'), db_setting('DB_PASSWORD', ''), $options);
         $pdo->exec("SET time_zone = '+08:00'");
     }
     return $pdo;

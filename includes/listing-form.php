@@ -5,7 +5,7 @@ if ($id && (!$existing || !can_manage($existing))) abort_page(404,'Listing not f
 $defaults=['name'=>'','location'=>'','exact_address'=>'','university_id'=>'','room_type_id'=>'','monthly_rent'=>'','capacity'=>'','available_slots'=>'','description'=>'','house_rules'=>'','curfew'=>'','security_info'=>'','contact_number'=>'','map_url'=>'','is_active'=>1,'owner_id'=>$isAdmin ? '' : $actor['id']];
 $data=$existing ?? $defaults; $errors=[];
 $amenityIds=$id ? array_column(rows('SELECT amenity_id FROM dormitory_amenities WHERE dormitory_id=?',[$id]),'amenity_id') : [];
-$images=$id ? rows('SELECT * FROM dormitory_images WHERE dormitory_id=? ORDER BY id',[$id]) : [];
+$images=$id ? rows('SELECT id,file_path,is_public FROM dormitory_images WHERE dormitory_id=? ORDER BY id',[$id]) : [];
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     foreach ($defaults as $key=>$unused) $data[$key]=post($key);
     $data['owner_id']=$isAdmin ? (int)post('owner_id') : $actor['id'];
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $tmp=$fileSet['tmp_name'][$k]; $size=$fileSet['size'][$k];
         $mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp); $dimensions=@getimagesize($tmp);
         if (!is_uploaded_file($tmp) || $size>5*1024*1024 || !in_array($mime,['image/jpeg','image/png','image/webp'],true) || !$dimensions || $dimensions[0]*$dimensions[1]>24000000 || ($dimensions['mime'] ?? '')!==$mime) { $errors[]='Images must be genuine JPEG, PNG, or WebP files, at most 5 MB and 24 megapixels.'; continue; }
-        $uploads[]=['tmp'=>$tmp,'extension'=>['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]];
+        $uploads[]=['tmp'=>$tmp,'mime'=>$mime,'extension'=>['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]];
     }
     $count=count($images)-count($remove)+count($uploads);
     if ($count<1 || $count>8) $errors[]='Keep between one and eight images on your listing.';
@@ -49,6 +49,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             else { query('INSERT INTO dormitories (' . implode(',',$columns) . ') VALUES (' . implode(',',array_fill(0,count($columns),'?')) . ')',$values); $id=(int)$pdo->lastInsertId(); }
             foreach ($remove as $imageId) query('DELETE FROM dormitory_images WHERE id=? AND dormitory_id=?',[$imageId,$id]);
             foreach ($uploads as $upload) {
+                if (db_setting('STORAGE_DRIVER','file')==='database') {
+                    // Hosts without a durable disk keep the image bytes in the database; image.php serves them.
+                    $bytes=file_get_contents($upload['tmp']); if ($bytes===false) throw new RuntimeException('Could not read the uploaded image.');
+                    query('INSERT INTO dormitory_images (dormitory_id,file_path,image_data,image_mime,is_public) VALUES (?,?,?,?,0)',[$id,'database:' . bin2hex(random_bytes(20)) . '.' . $upload['extension'],$bytes,$upload['mime']]);
+                    continue;
+                }
                 $path='uploads/dormitories/' . bin2hex(random_bytes(20)) . '.' . $upload['extension'];
                 if (!move_uploaded_file($upload['tmp'],ROOT . '/' . $path)) throw new RuntimeException('Could not store the uploaded image.');
                 $savedPaths[]=$path; query('INSERT INTO dormitory_images (dormitory_id,file_path,is_public) VALUES (?,?,0)',[$id,$path]);

@@ -25,7 +25,7 @@ This implementation follows the supplied master prompt. Separate HackPitch and C
 4. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 5. Open phpMyAdmin at <http://localhost/phpmyadmin>. At the server level, select **Import → Choose File**, select `C:\xampp\htdocs\DORMFINDER\database\dormfinder.sql`, choose **utf-8**, keep **SQL** as the format, and click **Import**. The file creates `dormfinder_db`, all tables, and sample data. If the database already exists and has tables, do not import again: use the existing installation or choose a separate database after making a backup.
 6. Expand `dormfinder_db` in phpMyAdmin and browse `dormitories`: a fresh installation has 12 listings, including pending, inactive, rejected, and fully occupied examples. The public browse page shows eight approved, active listings.
-7. Visit <http://localhost/DORMFINDER/>. Open **Find a dorm**, then log in as each role using the demo credentials below.
+7. Visit <http://localhost/DORMFINDER/>. Open **Explore dorms**, then log in as each role using the demo credentials below.
 
 If your MySQL `root` account has a password, or you use a different database name, copy `config/local.example.php` to `config/local.php` and edit the values. `config/local.php` is git-ignored. Environment variables with the same names (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`) take precedence over that file.
 
@@ -121,13 +121,61 @@ The sample student has already unlocked *Casa Study Cebu*, and has one failed si
 - The database allows at most one successful unlock per student per listing, so a double-submitted form can't charge twice.
 - Pages send a strict Content-Security-Policy and related security headers. The `config`, `includes`, `database`, `uploads` and `tests` folders are blocked from the web.
 
+## Deploying to Vercel (container runtime)
+
+Vercel has no durable disk, no MySQL and no Apache, so the app has a hosted mode that is switched on with environment variables. The `Dockerfile` (FrankenPHP, PHP 8.4) turns it on by default. Local XAMPP use is unchanged.
+
+| Variable | Hosted value | Purpose |
+|---|---|---|
+| `SESSION_DRIVER` | `database` (set in the Dockerfile) | Sessions go in the `sessions` table instead of files |
+| `STORAGE_DRIVER` | `database` (set in the Dockerfile) | Owner photos are stored in `dormitory_images.image_data` instead of `uploads/` |
+| `TRUST_PROXY` | `1` (set in the Dockerfile) | Treat `X-Forwarded-Proto: https` as HTTPS so the session cookie is `Secure` |
+| `DB_SSL_CA` | `/etc/ssl/certs/ca-certificates.crt` (set in the Dockerfile) | Encrypted connection to the hosted database. Set it to empty for a database without TLS |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | **you set these** | Your hosted MySQL/MariaDB |
+
+Steps:
+
+1. Create a hosted **MySQL or MariaDB** database (Vercel's marketplace has Postgres only, and this schema is MySQL-specific). Create a dedicated user with its own password; do not use `root`.
+2. Import `database/dormfinder.sql` into it. Hosted databases usually already exist and don't allow `CREATE DATABASE`, so delete the `CREATE DATABASE` and `USE` lines near the top of the file first. If you already have a database from an earlier version, run `database/migrate-hosted.sql` instead.
+3. **Change the demo passwords.** The accounts and `DemoPass2026!` are in this README, so anyone could sign in as the administrator. Generate a hash with `php -r "echo password_hash('your-new-password', PASSWORD_DEFAULT);"` and update the `password_hash` column for each `@dormfinder.test` user, or delete those users.
+4. In the Vercel project, set the `DB_*` variables, then deploy with the Vercel CLI from this folder. Vercel's guide for Dockerfile projects: <https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker>.
+
+`docker/Caddyfile` blocks the private folders (the job `.htaccess` does under Apache), and `docker/php.ini` turns off error display. To try the container locally: `docker build -t dormfinder .`, then run it on the same Docker network as a MariaDB container with the `DB_*` variables set and `DB_SSL_CA=` empty.
+
+Things to know before relying on it:
+- **Tested locally in Docker, not on Vercel itself.** The image, the blocked paths, sessions and photos surviving a container replacement, and the `Secure` cookie behind a forwarded-HTTPS header were all verified. I could not verify Vercel-specific limits.
+- **Upload size.** Vercel may limit request bodies (some Vercel function types cap them at about 4.5 MB). Test a real upload; a single 5 MB photo might be refused, in which case lower the limit in `includes/listing-form.php`.
+- **Database load.** Every request now reads and writes a session row, and photos are read from the database. Choose a database plan that allows enough connections for your concurrency.
+- **Sessions aren't locked.** Two simultaneous requests from one browser can overwrite each other's session changes (for example a flash message). This is harmless for this app.
+
+## Design system and front end
+
+The interface uses native PHP templates, Bootstrap 5 (plus its icons) as a base layer, and a small custom design system. There is no build step.
+
+| File | Purpose |
+|---|---|
+| `assets/css/style.css` | Design tokens (colors, radii, shadows, easing) as CSS variables, plus layout and components for every page |
+| `assets/css/animations.css` | The motion system: keyframes, scroll reveals, hero entrance, chart growth, and the `prefers-reduced-motion` overrides |
+| `assets/js/boot.js` | Compatibility file for older cached pages; no longer loaded by the shared header. Each module enables its own enhancement classes after initialization. |
+| `assets/js/motion.js` | Header glass state, scroll reveal, and count-up numbers. Uses `IntersectionObserver` only, with no scroll listeners |
+| `assets/js/script.js` | Behaviors: mobile menu, filter drawer, photo lightbox, accordions, password toggle, compare shortlist, dashboard sidebar and profile menu, toasts |
+| `assets/fonts/` | Plus Jakarta Sans (headings) and Inter (body), self-hosted. The strict Content-Security-Policy only allows the site's own origin, so they are bundled instead of loaded from Google Fonts |
+
+Palette: navy `#0B2545`, blue `#2563EB`, teal `#14B8A6`, background `#F8FAFC`, text `#0F172A`, muted `#64748B`, border `#E2E8F0`.
+
+How motion works: elements that should reveal on scroll carry `data-reveal`; numbers that should count up carry `data-count-to` with their real value in the markup. Charts are SVG drawn server-side from database values. PHP templates use no inline scripts. JavaScript sets animation delays through DOM style properties while preserving the existing Content-Security-Policy. Content stays visible if either enhancement module fails; drawers manage focus and Escape, and motion respects reduced-motion preferences.
+
+Filters and dashboard navigation use accessible mobile drawers. Skeletons are omitted because page data is rendered by PHP; submission spinners appear only during actual navigation or saving. There is no notification bell or asynchronous dashboard tab system. Destructive actions retain their explicit confirmation checkboxes.
+
 ## Running the tests
 
 ```
 C:\xampp\php\php.exe tests\run.php
 ```
 
-MySQL must be running. The suite creates a temporary database named `dormfinder_test`, loads `database/dormfinder.sql` into it, and starts PHP's built-in server on a free port. It then uses the site as a guest, a student, an owner and an administrator (138 checks), and deletes the temporary database and any uploaded test photos when it's done. Your `dormfinder_db` database is not touched. Logs from the last run are kept in `tests/.runtime/`. The deliberately oversized upload check produces one expected PHP startup warning; other diagnostics fail the suite.
+MySQL must be running. The suite creates a temporary database named `dormfinder_test`, loads `database/dormfinder.sql` into it, and starts PHP's built-in server on a free port. It then uses the site as a guest, a student, an owner and an administrator (161 checks), and deletes the temporary database and any uploaded test photos when it's done. Your `dormfinder_db` database is not touched. Logs from the last run are kept in `tests/.runtime/`.
+
+To test hosted mode, run it with the same variables the container uses (PowerShell): `$env:SESSION_DRIVER='database'; $env:STORAGE_DRIVER='database'; C:\xampp\php\php.exe tests\run.php`. That run has 164 checks, including that photos and sessions are stored in the database and nothing is written to disk. The deliberately oversized upload check produces one expected PHP startup warning; other diagnostics fail the suite.
 
 To keep the test database for inspection, set `KEEP_TEST_DB=1`. To use a different name, set `TEST_DB_NAME`. The name must end in `_test`.
 
@@ -139,6 +187,8 @@ See [the acceptance checklist](tests/test-checklist.md) for reproducible manual 
 python -m pip install --target tests/.runtime/python playwright
 python tests/browser-checks.py http://127.0.0.1:8000
 ```
+
+Interaction checks (menus, filter drawer, lightbox, accordion, count-up, sidebar, reduced motion, JavaScript disabled, and horizontal overflow at 320 to 1440px) run in real Chrome. Point them at a fresh database, because they unlock a listing: `python tests/interaction-checks.py http://127.0.0.1:8000`. Verified on 2026-11-15: 66 interaction checks passed. The screenshot/browser suite passed 188 checks at 375, 768 and 1280 px; it uses reduced motion for stable captures. The backend suite passed 161 checks. See `tests/ui-redesign-report.md`.
 
 Browser checks need the documented seed accounts, record login/recent-view activity, and save screenshots to `tests/screenshots`. They do not submit listing edits or simulated payments. Browser results are recorded in `tests/browser-results.json`.
 
@@ -195,7 +245,7 @@ includes/    bootstrap, helpers, shared templates and forms (not web-accessible)
 config/      database connection (not web-accessible)
 database/    schema and sample data (not web-accessible)
 uploads/     owner photos, served only through image.php
-tests/       end-to-end test suite
+tests/       end-to-end PHP suite, browser checks and screenshots
 ```
 
 ## Known limitations

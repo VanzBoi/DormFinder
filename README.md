@@ -128,7 +128,7 @@ Vercel has no durable disk, no MySQL and no Apache, so the app has a hosted mode
 | Variable | Hosted value | Purpose |
 |---|---|---|
 | `SESSION_DRIVER` | `database` (set in the Dockerfile) | Sessions go in the `sessions` table instead of files |
-| `STORAGE_DRIVER` | `database` (set in the Dockerfile) | Owner photos are stored in `dormitory_images.image_data` instead of `uploads/` |
+| `DORMFINDER_STORAGE_DRIVER` | `database` (set in the Dockerfile) | Owner photos are stored in `dormitory_images.image_data` instead of `uploads/` |
 | `TRUST_PROXY` | `1` (set in the Dockerfile) | Treat `X-Forwarded-Proto: https` as HTTPS so the session cookie is `Secure` |
 | `DB_SSL_CA` | `/etc/ssl/certs/ca-certificates.crt` (set in the Dockerfile) | Encrypted connection to the hosted database. Set it to empty for a database without TLS |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | **you set these** | Your hosted MySQL/MariaDB |
@@ -141,6 +141,8 @@ Steps:
 4. In the Vercel project, set the `DB_*` variables, then deploy with the Vercel CLI from this folder. Vercel's guide for Dockerfile projects: <https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker>.
 
 `docker/Caddyfile` blocks the private folders (the job `.htaccess` does under Apache), and `docker/php.ini` turns off error display. To try the container locally: `docker build -t dormfinder .`, then run it on the same Docker network as a MariaDB container with the `DB_*` variables set and `DB_SSL_CA=` empty.
+
+If upgrading an earlier deployment, remove the old `STORAGE_DRIVER` variable from every Vercel environment where it was added, and use `DORMFINDER_STORAGE_DRIVER=database` instead. Buildah also reads `STORAGE_DRIVER`; setting it to `database` makes the container builder fail with `driver not supported` before it executes the Dockerfile. Redeploy the latest commit after saving this change.
 
 Things to know before relying on it:
 - **Tested locally in Docker, not on Vercel itself.** The image, the blocked paths, sessions and photos surviving a container replacement, and the `Secure` cookie behind a forwarded-HTTPS header were all verified. I could not verify Vercel-specific limits.
@@ -175,7 +177,7 @@ C:\xampp\php\php.exe tests\run.php
 
 MySQL must be running. The suite creates a temporary database named `dormfinder_test`, loads `database/dormfinder.sql` into it, and starts PHP's built-in server on a free port. It then uses the site as a guest, a student, an owner and an administrator (161 checks), and deletes the temporary database and any uploaded test photos when it's done. Your `dormfinder_db` database is not touched. Logs from the last run are kept in `tests/.runtime/`.
 
-To test hosted mode, run it with the same variables the container uses (PowerShell): `$env:SESSION_DRIVER='database'; $env:STORAGE_DRIVER='database'; C:\xampp\php\php.exe tests\run.php`. That run has 164 checks, including that photos and sessions are stored in the database and nothing is written to disk. The deliberately oversized upload check produces one expected PHP startup warning; other diagnostics fail the suite.
+To test hosted mode, run it with the same variables the container uses (PowerShell): `$env:SESSION_DRIVER='database'; $env:DORMFINDER_STORAGE_DRIVER='database'; C:\xampp\php\php.exe tests\run.php`. That run has 164 checks, including that photos and sessions are stored in the database and nothing is written to disk. The deliberately oversized upload check produces one expected PHP startup warning; other diagnostics fail the suite.
 
 To keep the test database for inspection, set `KEEP_TEST_DB=1`. To use a different name, set `TEST_DB_NAME`. The name must end in `_test`.
 

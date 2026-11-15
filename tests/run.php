@@ -380,7 +380,7 @@ try {
     $created = row("SELECT id,status,owner_id,monthly_rent FROM dormitories WHERE name='Test Harbor House'");
     $t->check(($created['status'] ?? '') === 'pending' && (int)($created['owner_id'] ?? 0) === 2 && ($created['monthly_rent'] ?? '') === '4100.50', 'New listings start pending, owned by the submitter');
     $upload = row('SELECT id,file_path,is_public,(image_data IS NOT NULL) in_db,LENGTH(image_data) bytes FROM dormitory_images WHERE dormitory_id=?', [$created['id'] ?? 0]);
-    if (\db_setting('STORAGE_DRIVER', 'file') === 'database') {
+    if (\db_setting('DORMFINDER_STORAGE_DRIVER', 'file') === 'database') {
         $t->check((int)($upload['is_public'] ?? 0) === 1 && (int)($upload['in_db'] ?? 0) === 1 && (int)($upload['bytes'] ?? 0) === filesize("$app/assets/images/room-1.jpg") && !array_diff(scandir($uploadDir), $uploadsBefore), 'The photo is stored in the database and nothing is written to disk');
         $t->check(hash('sha256', $owner->get('/image.php?id=' . ($upload['id'] ?? 0))->body) === hash_file('sha256', "$app/assets/images/room-1.jpg"), 'The stored photo is served back byte for byte');
     } else {

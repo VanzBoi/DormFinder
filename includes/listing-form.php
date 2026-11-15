@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             else { query('INSERT INTO dormitories (' . implode(',',$columns) . ') VALUES (' . implode(',',array_fill(0,count($columns),'?')) . ')',$values); $id=(int)$pdo->lastInsertId(); }
             foreach ($remove as $imageId) query('DELETE FROM dormitory_images WHERE id=? AND dormitory_id=?',[$imageId,$id]);
             foreach ($uploads as $upload) {
-                if (db_setting('STORAGE_DRIVER','file')==='database') {
+                if (db_setting('DORMFINDER_STORAGE_DRIVER','file')==='database') {
                     // Hosts without a durable disk keep the image bytes in the database; image.php serves them.
                     $bytes=file_get_contents($upload['tmp']); if ($bytes===false) throw new RuntimeException('Could not read the uploaded image.');
                     query('INSERT INTO dormitory_images (dormitory_id,file_path,image_data,image_mime,is_public) VALUES (?,?,?,?,0)',[$id,'database:' . bin2hex(random_bytes(20)) . '.' . $upload['extension'],$bytes,$upload['mime']]);

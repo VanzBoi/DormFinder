@@ -5,7 +5,7 @@ RUN install-php-extensions pdo_mysql fileinfo opcache mbstring
 
 # Hosted defaults: no local disk, so sessions and photos live in the database. Override in the host's environment settings.
 ENV SESSION_DRIVER=database \
-    STORAGE_DRIVER=database \
+    DORMFINDER_STORAGE_DRIVER=database \
     TRUST_PROXY=1 \
     DB_SSL_CA=/etc/ssl/certs/ca-certificates.crt
 
